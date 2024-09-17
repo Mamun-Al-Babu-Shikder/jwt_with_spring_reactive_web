@@ -2,7 +2,7 @@ package com.sdlc.pro.app.config;
 
 import com.sdlc.pro.app.filter.JwtAuthenticationFilter;
 import com.sdlc.pro.app.model.AppUser;
-import com.sdlc.pro.app.service.AppUserService;
+import com.sdlc.pro.app.repository.AppUserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +21,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 public class AppSecurityConfig {
     private static final String[] PERMITTED_URLS = {"/api/login"};
 
-    private AppUserService appUserService;
+    private AppUserRepository appUserRepository;
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
@@ -30,8 +30,8 @@ public class AppSecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(PERMITTED_URLS).permitAll()
-                        .pathMatchers("/api/user/**").hasAuthority("ROLE_USER")
-                        .pathMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                        .pathMatchers("/api/user/**").hasRole("USER")
+                        .pathMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyExchange()
                         .permitAll()
                 )
@@ -49,18 +49,16 @@ public class AppSecurityConfig {
 
     @Bean
     public ReactiveUserDetailsService userDetailsService() {
-        var users = appUserService.getUsers()
-                .stream()
-                .map(this::toUserDetails)
-                .toList();
-        return new MapReactiveUserDetailsService(users);
+        return username -> appUserRepository
+                .findAppUserByUsername(username)
+                .map(this::toUserDetails);
     }
 
     private UserDetails toUserDetails(AppUser user) {
         return User.builder()
-                .username(user.username())
-                .password(passwordEncoder().encode(user.password()))
-                .authorities(user.role())
+                .username(user.getUsername())
+                .password(user.getPassword())
+                .authorities(user.getRole())
                 .build();
     }
 

@@ -1,25 +1,25 @@
 package com.sdlc.pro.app.model;
 
-import java.util.Objects;
 
-public record AppUser(String username, String password, String role) {
-    public AppUser {
-        Objects.requireNonNull(username, "username can't be null value");
-        Objects.requireNonNull(password, "password can't be null value");
-        Objects.requireNonNull(role, "role can't be null value");
-    }
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-    @Override
-    public int hashCode() {
-        return username.hashCode();
-    }
+@Setter
+@Getter
+@Table("app_user")
+public class AppUser {
+    @Id
+    private Integer id;
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj instanceof AppUser user) {
-            return this.username.equals(user.username());
-        }
-        return false;
-    }
+    @Column("username")
+    private String username;
+
+    @Column("password")
+    private String password;
+
+    @Column("role")
+    private String role;
 }

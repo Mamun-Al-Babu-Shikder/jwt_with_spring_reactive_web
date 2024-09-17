@@ -1,6 +1,6 @@
 package com.sdlc.pro.app.filter;
 
-import com.sdlc.pro.app.service.AppUserService;
+import com.sdlc.pro.app.repository.AppUserRepository;
 import com.sdlc.pro.app.service.JwtService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -19,19 +19,22 @@ import java.util.Collections;
 @AllArgsConstructor
 public class JwtAuthenticationFilter implements WebFilter {
     private JwtService jwtService;
-    private AppUserService appUserService;
+    private AppUserRepository userRepository;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         var token = extractJwtFromHeader(exchange);
         if (token != null) {
             var username = jwtService.extractUsername(token);
-            var user = appUserService.getUserByUsername(username);
-            var auth = new UsernamePasswordAuthenticationToken(user.username(),
-                    null,
-                    Collections.singleton(new SimpleGrantedAuthority(user.role()))
-            );
-            return chain.filter(exchange).contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth));
+            return userRepository.findAppUserByUsername(username)
+                    .map(user -> new UsernamePasswordAuthenticationToken(
+                            user.getUsername(),
+                            null,
+                            Collections.singleton(new SimpleGrantedAuthority(user.getRole()))
+                    ))
+                    .flatMap(auth -> chain.filter(exchange)
+                            .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth))
+                    );
         }
 
         return chain.filter(exchange);
